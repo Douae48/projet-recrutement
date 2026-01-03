@@ -1,16 +1,19 @@
 const neo4j = require('neo4j-driver');
 require('dotenv').config();
 
-console.log("⚙️  LOG : Lecture de db.js lancée");
-
 const driver = neo4j.driver(
     process.env.NEO4J_URI,
-    neo4j.auth.basic(process.env.NEO4J_USERNAME, process.env.NEO4J_PASSWORD)
+    neo4j.auth.basic(process.env.NEO4J_USER || process.env.NEO4J_USERNAME, process.env.NEO4J_PASSWORD)
 );
 
-// On vérifie que l'objet driver est bien créé
-if (driver) {
-    console.log("✅ LOG : Driver Neo4j créé avec succès");
-}
+// FONCTION DE TEST IMMÉDIAT
+driver.verifyConnectivity()
+    .then(() => {
+        console.log("🚀 CONNEXION RÉUSSIE : Le serveur parle enfin à AuraDB !");
+    })
+    .catch(error => {
+        console.log("❌ ÉCHEC CRITIQUE DE CONNEXION :");
+        console.error(error.message); // C'est ici que l'erreur s'affichera en rouge
+    });
 
-module.exports = driver;
+module.exports = { driver };

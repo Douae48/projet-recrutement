@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-
+const jobRoutes = require('./routes/JobRoutes');
 // Chargement des variables d'environnement
 dotenv.config();
 
@@ -19,7 +19,7 @@ app.get('/api/health', (req, res) => {
         timestamp: new Date()
     });
 });
-
+app.use('/api/jobs', jobRoutes);
 // Port d'écoute
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

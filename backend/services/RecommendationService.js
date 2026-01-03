@@ -1,5 +1,6 @@
 // backend/services/RecommendationService.js
-const driver = require('../config/db');
+const { driver } = require('../config/db'); // On extrait "driver" de l'objet exporté
+
 const neo4j = require('neo4j-driver'); // On ajoute l'import pour les outils de conversion
 
 const RecommendationService = {

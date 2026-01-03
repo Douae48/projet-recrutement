@@ -1,17 +1,21 @@
+require('dotenv').config(); // Toujours en premier !
 const express = require('express');
 const cors = require('cors');
-const dotenv = require('dotenv');
-
-// Chargement des variables d'environnement
-dotenv.config();
+const jobRoutes = require('./routes/JobRoutes');
+const authRoutes = require('./routes/AuthRoutes');
+const auth = require('./middlewares/authMiddleware');
 
 const app = express();
 
-// Middlewares de base
-app.use(cors()); // Autorise le Frontend à appeler l'API
-app.use(express.json()); // Permet de lire le JSON dans les requêtes
+// Middlewares globaux
+app.use(cors()); 
+app.use(express.json()); 
 
-// Route de test (Health Check)
+// --- ROUTES ---
+
+// 1. Routes Publiques (Accessibles par tout le monde)
+app.use('/api/auth', authRoutes);
+
 app.get('/api/health', (req, res) => {
     res.status(200).json({ 
         status: 'OK', 
@@ -20,9 +24,12 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Port d'écoute
-const PORT = process.env.PORT || 3000;
+// 2. Routes Protégées (Nécessitent le badge/Token JWT)
+// On place le middleware 'auth' avant 'jobRoutes'
+app.use('/api/jobs', auth, jobRoutes); 
+
+// --- LANCEMENT ---
+const PORT = process.env.PORT || 5000; // On utilise 5000 comme convenu
 app.listen(PORT, () => {
     console.log(`✅ Serveur démarré sur : http://localhost:${PORT}`);
-    console.log(`🚀 Route de test disponible sur : http://localhost:${PORT}/api/health`);
 });

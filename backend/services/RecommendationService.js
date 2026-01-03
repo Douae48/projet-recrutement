@@ -1,29 +1,40 @@
 // backend/services/RecommendationService.js
-const { driver } = require('../config/db'); // On extrait "driver" de l'objet exporté
-
-const neo4j = require('neo4j-driver'); // On ajoute l'import pour les outils de conversion
+const { driver } = require('../config/db');
+const neo4j = require('neo4j-driver');
 
 const RecommendationService = {
     getRecommendedJobs: async (candidateId) => {
         const session = driver.session();
         try {
             const query = `
-                MATCH (c:Candidate {id: $candidateId})-[:HAS_SKILL]->(s:Skill)
+                // 1. On trouve les skills communs entre candidat et jobs ouverts
+                MATCH (c:User:Candidate {id: $candidateId})-[:HAS_SKILL]->(s:Skill)
                 MATCH (s)<-[:REQUIRES_SKILL]-(j:JobOffer {status: 'open'})
                 MATCH (j)-[:REQUIRES_SKILL]->(totalSkills:Skill)
                 
-                WITH j, count(DISTINCT s) AS commonCount, count(DISTINCT totalSkills) AS totalCount
+                WITH c, j, count(DISTINCT s) AS commonCount, count(DISTINCT totalSkills) AS totalCount
                 
-                MATCH (rec:Recruiter)-[:POSTED]->(j)
+                // 2. On récupère les infos de l'entreprise
+                MATCH (rec:User:Recruiter)-[:POSTED]->(j)
                 MATCH (rec)-[:WORKS_AT]->(com:Company)
                 
-                // On s'assure que le résultat est un entier pour le driver
+                // 3. LOGIQUE DE CALCUL + BONUS
+                // On calcule le bonus d'expérience (10 si > 5 ans, sinon 0)
+                WITH j, com, commonCount, totalCount, 
+                     CASE WHEN c.yearsExperience > 5 THEN 10 ELSE 0 END AS experienceBonus
+                
+                // 4. LOGIQUE DE PLAFONNEMENT
+                // On calcule le score brut d'abord
+                WITH j, com, (((toFloat(commonCount) / totalCount) * 100) + experienceBonus) AS rawScore
+                
+                // 5. RÉSULTAT FINAL
                 RETURN 
                     j.id AS jobId, 
                     j.title AS title, 
                     com.name AS companyName,
                     j.salaryRange AS salary,
-                    toInteger(round((toFloat(commonCount) / totalCount) * 100)) AS matchPercentage
+                    // Si le score dépasse 100, on le bloque à 100
+                    toInteger(round(CASE WHEN rawScore > 100 THEN 100 ELSE rawScore END)) AS matchPercentage
                 ORDER BY matchPercentage DESC
             `;
 
@@ -31,18 +42,16 @@ const RecommendationService = {
 
             return result.records.map(record => {
                 const matchPercentage = record.get('matchPercentage');
-                
                 return {
                     jobId: record.get('jobId'),
                     title: record.get('title'),
                     companyName: record.get('companyName'),
                     salary: record.get('salary'),
-                    // SECURITÉ : On convertit en nombre standard JS que ce soit un Integer Neo4j ou un Number
                     matchScore: neo4j.isInt(matchPercentage) ? matchPercentage.toNumber() : matchPercentage
                 };
             });
         } catch (error) {
-            console.error("❌ Erreur Cypher:", error.message);
+            console.error("❌ Erreur Cypher RecommendationService:", error.message);
             throw error;
         } finally {
             await session.close();

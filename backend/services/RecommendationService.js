@@ -7,33 +7,30 @@ const RecommendationService = {
         const session = driver.session();
         try {
             const query = `
-                // 1. On trouve les skills communs entre candidat et jobs ouverts
+                // 1. On cherche les skills communs (Obligatoire)
                 MATCH (c:User:Candidate {id: $candidateId})-[:HAS_SKILL]->(s:Skill)
                 MATCH (s)<-[:REQUIRES_SKILL]-(j:JobOffer {status: 'open'})
+                
+                // 2. On compte le total des skills du job pour le %
                 MATCH (j)-[:REQUIRES_SKILL]->(totalSkills:Skill)
                 
-                WITH c, j, count(DISTINCT s) AS commonCount, count(DISTINCT totalSkills) AS totalCount
+                WITH j, c, count(DISTINCT s) AS commonCount, count(DISTINCT totalSkills) AS totalCount
                 
-                // 2. On récupère les infos de l'entreprise
-                MATCH (rec:User:Recruiter)-[:POSTED]->(j)
-                MATCH (rec)-[:WORKS_AT]->(com:Company)
+                // 3. OPTIONAL MATCH : On cherche l'entreprise si elle existe
+                // Si elle n'existe pas, la requête ne s'arrête pas (contrairement au MATCH simple)
+                OPTIONAL MATCH (rec:User:Recruiter)-[:POSTED]->(j)
+                OPTIONAL MATCH (rec)-[:WORKS_AT]->(com:Company)
                 
-                // 3. LOGIQUE DE CALCUL + BONUS
-                // On calcule le bonus d'expérience (10 si > 5 ans, sinon 0)
-                WITH j, com, commonCount, totalCount, 
+                WITH j, com, commonCount, totalCount,
                      CASE WHEN c.yearsExperience > 5 THEN 10 ELSE 0 END AS experienceBonus
                 
-                // 4. LOGIQUE DE PLAFONNEMENT
-                // On calcule le score brut d'abord
                 WITH j, com, (((toFloat(commonCount) / totalCount) * 100) + experienceBonus) AS rawScore
-                
-                // 5. RÉSULTAT FINAL
+
                 RETURN 
                     j.id AS jobId, 
                     j.title AS title, 
-                    com.name AS companyName,
+                    coalesce(com.name, "Entreprise non spécifiée") AS companyName,
                     j.salaryRange AS salary,
-                    // Si le score dépasse 100, on le bloque à 100
                     toInteger(round(CASE WHEN rawScore > 100 THEN 100 ELSE rawScore END)) AS matchPercentage
                 ORDER BY matchPercentage DESC
             `;
@@ -51,12 +48,16 @@ const RecommendationService = {
                 };
             });
         } catch (error) {
-            console.error("❌ Erreur Cypher RecommendationService:", error.message);
+            console.error("❌ Erreur RecommendationService:", error.message);
             throw error;
         } finally {
             await session.close();
         }
     },
+    // ... garde tes autres fonctions (getStats, etc.)
+
+
+
 
     getStats: async () => {
         const session = driver.session();
@@ -64,6 +65,40 @@ const RecommendationService = {
             const res = await session.run("MATCH (j:JobOffer {status: 'open'}) RETURN count(j) as total");
             const count = res.records[0].get('total');
             return neo4j.isInt(count) ? count.toNumber() : count;
+        } finally {
+            await session.close();
+        }
+    },
+
+    // voir le détail complet dune  offre (description, nom du recruteur, etc.).
+  getJobDetails: async (jobId) => {
+        const session = driver.session();
+        try {
+            const query = `
+                MATCH (j:JobOffer {id: $jobId})
+                // On cherche le recruteur et la boîte, mais sans bloquer si c'est absent
+                OPTIONAL MATCH (j)<-[:POSTED]-(r:User:Recruiter)
+                OPTIONAL MATCH (r)-[:WORKS_AT]->(com:Company)
+                // On récupère les compétences requises
+                OPTIONAL MATCH (j)-[:REQUIRES_SKILL]->(s:Skill)
+                
+                RETURN j, r, com, collect(s.label) AS skills
+            `;
+            const result = await session.run(query, { jobId });
+            
+            if (result.records.length === 0) return null;
+            
+            const record = result.records[0];
+            const jobProps = record.get('j').properties;
+            const recruiterProps = record.get('r') ? record.get('r').properties : null;
+            const companyProps = record.get('com') ? record.get('com').properties : null;
+
+            return {
+                ...jobProps,
+                recruiterName: recruiterProps ? recruiterProps.firstName : "Non spécifié",
+                companyName: companyProps ? companyProps.name : "Entreprise non spécifiée",
+                skills: record.get('skills') || []
+            };
         } finally {
             await session.close();
         }

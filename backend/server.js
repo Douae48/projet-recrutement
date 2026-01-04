@@ -4,7 +4,7 @@ const cors = require('cors');
 const jobRoutes = require('./routes/JobRoutes');
 const authRoutes = require('./routes/AuthRoutes');
 const auth = require('./middlewares/authMiddleware');
-
+const dataRoutes = require('./routes/DataRoutes');
 const app = express();
 
 // Middlewares globaux
@@ -23,7 +23,7 @@ app.get('/api/health', (req, res) => {
         timestamp: new Date()
     });
 });
-
+app.use('/api/data', auth, dataRoutes);
 // 2. Routes Protégées (Nécessitent le badge/Token JWT)
 // On place le middleware 'auth' avant 'jobRoutes'
 app.use('/api/jobs', auth, jobRoutes); 

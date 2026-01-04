@@ -19,9 +19,7 @@ apiClient.interceptors.request.use(
     // 3. Si pas de badge (cas du Login/Register), la requête part "vide", et c'est normal !
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 export default apiClient;

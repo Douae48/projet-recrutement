@@ -1,0 +1,16 @@
+# Dépendances
+node_modules/
+jspm_packages/
+
+# Secrets
+.env
+.env.local
+
+# Builds et Dossiers de sortie
+dist/
+build/
+.expo/
+
+# Système
+.DS_Store
+Thumbs.db

@@ -1,8 +1,3 @@
-<<<<<<< HEAD
-// Responsable de la gestion des offres d'emploi
-exports.getAllJobs = async (req, res) => {
-    res.status(200).json({ message: "Liste des jobs (en attente...)" });
-=======
 // On importe le service déjà codé par l'étudiante A
 const RecommendationService = require('../services/RecommendationService');
 
@@ -29,5 +24,5 @@ exports.getStats = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: "Erreur statistiques" });
     }
->>>>>>> main
+
 };

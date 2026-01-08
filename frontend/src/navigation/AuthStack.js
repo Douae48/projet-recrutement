@@ -1,18 +1,31 @@
+// src/navigation/AuthStack.js
+// Stack de navigation pour la phase d'authentification
+
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 
 import WelcomeScreen from '../screens/WelcomeScreen';
 import LoginScreen from '../screens/LoginScreen';
-import RegisterScreen from '../screens/RegisterScreen'; // Ajoute cet import
+import RegisterScreen from '../screens/RegisterScreen';
 
 const Stack = createStackNavigator();
 
 export default function AuthStack() {
   return (
-    <Stack.Navigator>
-      <Stack.Screen name="Welcome" component={WelcomeScreen} options={{ headerShown: false }} />
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        gestureEnabled: true,
+        cardStyleInterpolator: ({ current: { progress } }) => ({
+          cardStyle: {
+            opacity: progress,
+          },
+        }),
+      }}
+    >
+      <Stack.Screen name="Welcome" component={WelcomeScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Register" component={RegisterScreen} /> 
+      <Stack.Screen name="Register" component={RegisterScreen} />
     </Stack.Navigator>
   );
 }

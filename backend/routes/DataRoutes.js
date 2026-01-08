@@ -1,9 +1,25 @@
 const express = require('express');
 const router = express.Router();
 const DataController = require('../controllers/DataController');
-const auth = require('../middlewares/authMiddleware');
 
-router.post('/add-skill', auth, DataController.addSkill);
-router.post('/post-job', auth, DataController.postJob);
+// Routes pour les compétences (Candidat)
+router.post('/add-skill', DataController.addSkill);
+router.get('/my-skills', DataController.getMySkills);
+router.delete('/remove-skill', DataController.removeSkill);
+
+// Routes pour le profil
+router.get('/profile', DataController.getProfile);
+router.put('/profile', DataController.updateProfile);
+
+// Routes pour les candidatures
+router.post('/apply', DataController.applyToJob);
+router.get('/my-applications', DataController.getMyApplications);
+
+// Route pour poster un job (Recruteur)
+router.post('/post-job', DataController.postJob);
+
+// Routes pour gérer les offres (Recruteur)
+router.delete('/jobs/:jobId', DataController.deleteJob);
+router.put('/jobs/:jobId', DataController.updateJob);
 
 module.exports = router;

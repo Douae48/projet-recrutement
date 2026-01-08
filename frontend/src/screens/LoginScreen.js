@@ -1,92 +1,270 @@
+// src/screens/LoginScreen.js
+// Écran de connexion avec thème dynamique selon le rôle
+
 import React, { useState, useContext } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Alert, 
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  ScrollView,
+  Platform,
+  StatusBar,
+  Dimensions,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../context/AuthContext';
 import { loginUser } from '../api/auth';
 
-// N'oublie pas d'ajouter "navigation" dans les arguments ici :
+const { width } = Dimensions.get('window');
+import { COLORS, SHADOWS, SPACING, TYPOGRAPHY, BORDER_RADIUS, getThemeColors } from '../utils/theme';
+
 const LoginScreen = ({ route, navigation }) => {
-    const { role } = route.params || { role: 'Candidate' };
-    
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [loading, setLoading] = useState(false);
+  const { role } = route.params || { role: 'Candidate' };
+  const themeColors = getThemeColors(role);
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-    const { login } = useContext(AuthContext);
+  const { login } = useContext(AuthContext);
 
-    const handleLogin = async () => {
-        if (!email || !password) {
-            Alert.alert("Erreur", "Veuillez remplir tous les champs !");
-            return;
-        }
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert("Champs requis", "Veuillez remplir tous les champs.");
+      return;
+    }
 
-        setLoading(true);
-        try {
-            const data = await loginUser(email, password);
-            if (data.token) {
-                await login(data.token, data.roles); 
-            }
-        } catch (error) {
-            Alert.alert("Échec", "Email ou mot de passe incorrect.");
-        } finally {
-            setLoading(false);
-        }
-    };
+    setLoading(true);
+    try {
+      const data = await loginUser(email, password);
+      if (data.token) {
+        await login(data.token, data.roles, data.user);
+      }
+    } catch (error) {
+      Alert.alert("Échec de connexion", "Email ou mot de passe incorrect.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return (
-        <View style={styles.container}>
-            <Text style={styles.title}>Connexion {role}</Text>
-            
-            <TextInput 
-                style={styles.input} 
-                placeholder="Email" 
-                value={email} 
-                onChangeText={setEmail} 
-                autoCapitalize="none" 
+  return (
+    <KeyboardAvoidingView 
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.neutral.white} />
+      
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Bouton retour */}
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color={COLORS.neutral.text} />
+        </TouchableOpacity>
+        
+        {/* Header */}
+        <View style={styles.headerSection}>
+          <View style={[styles.iconCircle, { backgroundColor: themeColors.primaryLight + '20' }]}>
+            <Ionicons 
+              name={role === 'Recruiter' ? 'business' : 'person'} 
+              size={40} 
+              color={themeColors.primary} 
             />
-            
-            <TextInput 
-                style={styles.input} 
-                placeholder="Mot de passe" 
-                value={password} 
-                onChangeText={setPassword} 
-                secureTextEntry 
-            />
-
-            {/* BOUTON DE CONNEXION */}
-            <TouchableOpacity 
-                style={[styles.button, {backgroundColor: role === 'Recruiter' ? '#34C759' : '#007AFF'}]} 
-                onPress={handleLogin} 
-                disabled={loading}
-            >
-                {loading ? (
-                    <ActivityIndicator color="#fff" />
-                ) : (
-                    <Text style={styles.buttonText}>SE CONNECTER</Text>
-                )}
-            </TouchableOpacity>
-
-            {/* NOUVEAU : BOUTON DE CRÉATION DE COMPTE */}
-            <TouchableOpacity 
-                style={styles.registerLink}
-                onPress={() => navigation.navigate('Register', { role: role })}
-            >
-                <Text style={styles.registerText}>
-                    Pas encore de compte ? <Text style={styles.boldText}>S'inscrire ici</Text>
-                </Text>
-            </TouchableOpacity>
+          </View>
+          <Text style={styles.title}>Connexion</Text>
+          <Text style={[styles.roleLabel, { color: themeColors.primary }]}>
+            {role === 'Recruiter' ? 'Espace Recruteur' : 'Espace Candidat'}
+          </Text>
         </View>
-    );
+        
+        {/* Formulaire */}
+        <View style={styles.formSection}>
+          {/* Email */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Email</Text>
+            <View style={[styles.inputWrapper, email && styles.inputWrapperFocused]}>
+              <Ionicons name="mail-outline" size={20} color={COLORS.neutral.textSecondary} />
+              <TextInput
+                style={styles.input}
+                placeholder="votre@email.com"
+                placeholderTextColor={COLORS.neutral.placeholder}
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                autoCorrect={false}
+              />
+            </View>
+          </View>
+          
+          {/* Password */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>Mot de passe</Text>
+            <View style={[styles.inputWrapper, password && styles.inputWrapperFocused]}>
+              <Ionicons name="lock-closed-outline" size={20} color={COLORS.neutral.textSecondary} />
+              <TextInput
+                style={styles.input}
+                placeholder="••••••••"
+                placeholderTextColor={COLORS.neutral.placeholder}
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <Ionicons 
+                  name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                  size={20} 
+                  color={COLORS.neutral.textSecondary} 
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+          
+          {/* Bouton Connexion */}
+          <TouchableOpacity
+            style={[styles.submitButton, { backgroundColor: themeColors.primary }]}
+            onPress={handleLogin}
+            disabled={loading}
+            activeOpacity={0.8}
+          >
+            {loading ? (
+              <ActivityIndicator color={COLORS.neutral.white} />
+            ) : (
+              <>
+                <Text style={styles.submitButtonText}>Se connecter</Text>
+                <Ionicons name="arrow-forward" size={20} color={COLORS.neutral.white} />
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+        
+        {/* Lien inscription */}
+        <View style={styles.footerSection}>
+          <Text style={styles.footerText}>Pas encore de compte ?</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Register', { role })}>
+            <Text style={[styles.linkText, { color: themeColors.primary }]}>
+              Créer un compte
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, justifyContent: 'center', padding: 20, backgroundColor: '#fff' },
-    title: { fontSize: 24, fontWeight: 'bold', marginBottom: 30, textAlign: 'center' },
-    input: { borderBottomWidth: 1, borderColor: '#ddd', marginBottom: 20, padding: 10 },
-    button: { padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 10 },
-    buttonText: { color: '#fff', fontWeight: 'bold' },
-    registerLink: { marginTop: 25, alignItems: 'center' },
-    registerText: { color: '#666', fontSize: 14 },
-    boldText: { color: '#007AFF', fontWeight: 'bold' }
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.neutral.white,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingHorizontal: SPACING.lg,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + SPACING.md : SPACING.xxl,
+    paddingBottom: SPACING.xl,
+    maxWidth: width > 768 ? 600 : '100%',
+    alignSelf: 'center',
+    width: '100%',
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: COLORS.neutral.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.lg,
+  },
+  headerSection: {
+    alignItems: 'center',
+    marginBottom: SPACING.xxl,
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: SPACING.md,
+  },
+  title: {
+    ...TYPOGRAPHY.hero,
+    color: COLORS.neutral.text,
+  },
+  roleLabel: {
+    ...TYPOGRAPHY.bodyBold,
+    marginTop: SPACING.xs,
+  },
+  formSection: {
+    flex: 1,
+  },
+  inputContainer: {
+    marginBottom: SPACING.lg,
+  },
+  inputLabel: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.neutral.text,
+    marginBottom: SPACING.sm,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.neutral.background,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  inputWrapperFocused: {
+    borderColor: COLORS.neutral.border,
+  },
+  input: {
+    flex: 1,
+    ...TYPOGRAPHY.body,
+    color: COLORS.neutral.text,
+    marginLeft: SPACING.sm,
+    paddingVertical: SPACING.xs,
+  },
+  submitButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.md,
+    marginTop: SPACING.lg,
+    ...SHADOWS.medium,
+  },
+  submitButtonText: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.neutral.white,
+    marginRight: SPACING.sm,
+  },
+  footerSection: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: SPACING.xl,
+  },
+  footerText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.neutral.textSecondary,
+    marginRight: SPACING.xs,
+  },
+  linkText: {
+    ...TYPOGRAPHY.bodyBold,
+  },
 });
 
 export default LoginScreen;

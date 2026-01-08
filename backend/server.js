@@ -24,9 +24,10 @@ app.get('/api/health', (req, res) => {
     });
 });
 app.use('/api/data', auth, dataRoutes);
-// 2. Routes Protégées (Nécessitent le badge/Token JWT)
-// On place le middleware 'auth' avant 'jobRoutes'
-app.use('/api/jobs', auth, jobRoutes); 
+
+// 2. Routes Jobs (certaines sont publiques, certaines protégées)
+// L'authentification est gérée individuellement dans JobRoutes.js
+app.use('/api/jobs', jobRoutes); 
 
 // --- LANCEMENT ---
 const PORT = process.env.PORT || 5000; // On utilise 5000 comme convenu

@@ -1,33 +1,51 @@
+// src/navigation/AppNavigator.js
+// Navigation principale avec aiguillage selon Token et Rôle
+
 import React, { useContext } from 'react';
+import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { AuthContext } from '../context/AuthContext';
+import { COLORS } from '../utils/theme';
 
-// Import des Stacks (qu'on va créer juste après)
+// Import des Stacks et Navigators
 import AuthStack from './AuthStack';
-import JobFeedScreen from '../screens/JobFeedScreen'; 
-// Ajoute ici ton écran Recruteur quand il sera prêt
+import MainTabNavigator from './MainTabNavigator';
 
 const Stack = createStackNavigator();
 
 export default function AppNavigator() {
-  const { userToken, userRoles } = useContext(AuthContext);
+  const { userToken, isLoading } = useContext(AuthContext);
+
+  // Écran de chargement pendant la restauration de session
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.candidate.primary} />
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {userToken == null ? (
-          // 1. SI PAS CONNECTÉ : On montre le flux d'entrée (Welcome -> Login)
+          // Phase Auth : Pas de token -> Welcome/Login/Register
           <Stack.Screen name="AuthStack" component={AuthStack} />
         ) : (
-          // 2. SI CONNECTÉ : On regarde le rôle pour savoir quoi montrer
-          userRoles.includes('Recruiter') ? (
-            <Stack.Screen name="RecruiterHome" component={JobFeedScreen} /> // Dashboard Recruteur à venir
-          ) : (
-            <Stack.Screen name="CandidateHome" component={JobFeedScreen} /> // Flux de jobs
-          )
+          // Phase App : Token présent -> TabNavigator avec rôle
+          <Stack.Screen name="MainApp" component={MainTabNavigator} />
         )}
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.neutral.white,
+  },
+});

@@ -102,6 +102,126 @@ const RecommendationService = {
         } finally {
             await session.close();
         }
+    },
+
+    // Récupérer les offres publiées par un recruteur
+    getRecruiterJobs: async (recruiterId) => {
+        const session = driver.session();
+        try {
+            const query = `
+                MATCH (r:User:Recruiter {id: $recruiterId})-[:POSTED]->(j:JobOffer)
+                OPTIONAL MATCH (j)-[:REQUIRES_SKILL]->(s:Skill)
+                RETURN j.id AS jobId, j.title AS title, j.salaryRange AS salaryRange, 
+                       j.status AS status, j.postedAt AS postedAt,
+                       collect(s.label) AS skills
+                ORDER BY j.postedAt DESC
+            `;
+            const result = await session.run(query, { recruiterId });
+            
+            return result.records.map(record => ({
+                jobId: record.get('jobId'),
+                title: record.get('title'),
+                salaryRange: record.get('salaryRange'),
+                status: record.get('status'),
+                postedAt: record.get('postedAt'),
+                skills: record.get('skills').filter(s => s !== null)
+            }));
+        } finally {
+            await session.close();
+        }
+    },
+
+    // Récupérer les candidats recommandés pour une offre
+    getRecommendedCandidates: async (jobId) => {
+        const session = driver.session();
+        try {
+            const query = `
+                MATCH (j:JobOffer {id: $jobId})-[:REQUIRES_SKILL]->(s:Skill)
+                MATCH (s)<-[:HAS_SKILL]-(c:User:Candidate)
+                
+                // Compter les skills communs
+                WITH j, c, count(DISTINCT s) AS commonCount
+                
+                // Compter le total des skills requis pour le job
+                MATCH (j)-[:REQUIRES_SKILL]->(totalSkills:Skill)
+                WITH c, commonCount, count(DISTINCT totalSkills) AS totalCount
+                
+                // Compter les skills du candidat
+                OPTIONAL MATCH (c)-[:HAS_SKILL]->(candidateSkills:Skill)
+                WITH c, commonCount, totalCount, collect(candidateSkills.label) AS skills
+                
+                WITH c, skills, (toFloat(commonCount) / totalCount * 100) AS rawScore
+                
+                RETURN 
+                    c.id AS candidateId,
+                    c.name AS name,
+                    c.email AS email,
+                    skills,
+                    toInteger(round(CASE WHEN rawScore > 100 THEN 100 ELSE rawScore END)) AS matchScore
+                ORDER BY matchScore DESC
+            `;
+            const result = await session.run(query, { jobId });
+            
+            return result.records.map(record => {
+                const matchScore = record.get('matchScore');
+                return {
+                    candidateId: record.get('candidateId'),
+                    name: record.get('name'),
+                    email: record.get('email'),
+                    skills: record.get('skills').filter(s => s !== null),
+                    matchScore: neo4j.isInt(matchScore) ? matchScore.toNumber() : matchScore
+                };
+            });
+        } finally {
+            await session.close();
+        }
+    },
+
+    // Récupérer tous les candidats recommandés pour toutes les offres d'un recruteur
+    getAllRecommendedCandidatesForRecruiter: async (recruiterId) => {
+        const session = driver.session();
+        try {
+            const query = `
+                MATCH (r:User:Recruiter {id: $recruiterId})-[:POSTED]->(j:JobOffer {status: 'open'})
+                MATCH (j)-[:REQUIRES_SKILL]->(s:Skill)<-[:HAS_SKILL]-(c:User:Candidate)
+                
+                WITH j, c, count(DISTINCT s) AS commonCount
+                MATCH (j)-[:REQUIRES_SKILL]->(totalSkills:Skill)
+                WITH j, c, commonCount, count(DISTINCT totalSkills) AS totalCount
+                
+                OPTIONAL MATCH (c)-[:HAS_SKILL]->(candidateSkills:Skill)
+                WITH j, c, commonCount, totalCount, collect(DISTINCT candidateSkills.label) AS skills
+                
+                WITH j, c, skills, (toFloat(commonCount) / totalCount * 100) AS rawScore
+                WHERE rawScore >= 30
+                
+                RETURN DISTINCT
+                    c.id AS candidateId,
+                    c.name AS name,
+                    c.email AS email,
+                    skills,
+                    j.id AS jobId,
+                    j.title AS jobTitle,
+                    toInteger(round(CASE WHEN rawScore > 100 THEN 100 ELSE rawScore END)) AS matchScore
+                ORDER BY matchScore DESC
+            `;
+            const result = await session.run(query, { recruiterId });
+            
+            return result.records.map(record => {
+                const matchScore = record.get('matchScore');
+                return {
+                    candidateId: record.get('candidateId'),
+                    name: record.get('name'),
+                    email: record.get('email'),
+                    skills: record.get('skills'),
+                    jobId: record.get('jobId'),
+                    jobTitle: record.get('jobTitle'),
+                    matchScore: neo4j.isInt(matchScore) ? matchScore.toNumber() : matchScore
+                };
+            });
+        } finally {
+            await session.close();
+        }
     }
 };
 

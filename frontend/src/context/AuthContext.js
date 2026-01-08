@@ -1,30 +1,104 @@
-import React, { createContext, useState } from 'react';
+// src/context/AuthContext.js
+// Gestion globale de l'authentification - JobMatch Morocco
+
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const AuthContext = createContext();
 
+const STORAGE_KEYS = {
+  TOKEN: 'userToken',
+  ROLES: 'userRoles',
+  USER: 'userData',
+};
+
 export const AuthProvider = ({ children }) => {
-    const [userToken, setUserToken] = useState(null);
-    const [userRoles, setUserRoles] = useState([]);
+  const [userToken, setUserToken] = useState(null);
+  const [userRoles, setUserRoles] = useState([]);
+  const [userData, setUserData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-    // Cette fonction sera appelée par le LoginScreen
-    const login = async (token, roles) => {
+  // Restaurer la session au démarrage
+  useEffect(() => {
+    restoreSession();
+  }, []);
+
+  const restoreSession = async () => {
+    try {
+      // MODE DÉVELOPPEMENT : Forcer la déconnexion au démarrage
+      // Commentez ces 3 lignes pour restaurer le comportement normal
+      await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
+      setIsLoading(false);
+      return;
+      
+      const [token, rolesJson, userJson] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.TOKEN),
+        AsyncStorage.getItem(STORAGE_KEYS.ROLES),
+        AsyncStorage.getItem(STORAGE_KEYS.USER),
+      ]);
+
+      if (token) {
         setUserToken(token);
-        setUserRoles(roles);
-        // On le cache dans le téléphone pour la prochaine fois
-        await AsyncStorage.setItem('userToken', token);
-        await AsyncStorage.setItem('userRoles', JSON.stringify(roles));
-    };
+        setUserRoles(rolesJson ? JSON.parse(rolesJson) : []);
+        setUserData(userJson ? JSON.parse(userJson) : null);
+      }
+    } catch (error) {
+      console.error('Erreur restauration session:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    const logout = async () => {
-        setUserToken(null);
-        setUserRoles([]);
-        await AsyncStorage.clear();
-    };
+  // Connexion utilisateur
+  const login = useCallback(async (token, roles, user = null) => {
+    try {
+      setUserToken(token);
+      setUserRoles(roles);
+      setUserData(user);
 
-    return (
-        <AuthContext.Provider value={{ userToken, userRoles, login, logout }}>
-            {children}
-        </AuthContext.Provider>
-    );
+      await Promise.all([
+        AsyncStorage.setItem(STORAGE_KEYS.TOKEN, token),
+        AsyncStorage.setItem(STORAGE_KEYS.ROLES, JSON.stringify(roles)),
+        user && AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user)),
+      ]);
+    } catch (error) {
+      console.error('Erreur login:', error);
+      throw error;
+    }
+  }, []);
+
+  // Déconnexion
+  const logout = useCallback(async () => {
+    try {
+      setUserToken(null);
+      setUserRoles([]);
+      setUserData(null);
+      await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
+    } catch (error) {
+      console.error('Erreur logout:', error);
+    }
+  }, []);
+
+  // Helpers pour vérifier les rôles
+  const isCandidate = userRoles.includes('Candidate');
+  const isRecruiter = userRoles.includes('Recruiter');
+  const primaryRole = isRecruiter ? 'Recruiter' : 'Candidate';
+
+  const value = {
+    userToken,
+    userRoles,
+    userData,
+    isLoading,
+    isCandidate,
+    isRecruiter,
+    primaryRole,
+    login,
+    logout,
+  };
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

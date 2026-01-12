@@ -45,7 +45,6 @@ const JobFeedScreen = ({ navigation }) => {
       const recommendations = await getRecommendedJobs();
       setJobs(recommendations);
     } catch (err) {
-      console.error('Erreur chargement:', err);
       setError('Impossible de charger les recommandations');
     } finally {
       setLoading(false);

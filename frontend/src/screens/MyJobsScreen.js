@@ -28,6 +28,8 @@ const MyJobsScreen = ({ navigation }) => {
   const [expandedJob, setExpandedJob] = useState(null);
   const [candidates, setCandidates] = useState({});
   const [loadingCandidates, setLoadingCandidates] = useState({});
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
   
   // États pour la modal d'édition
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -35,6 +37,8 @@ const MyJobsScreen = ({ navigation }) => {
   const [editTitle, setEditTitle] = useState('');
   const [editSalary, setEditSalary] = useState('');
   const [editSkills, setEditSkills] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [jobToDelete, setJobToDelete] = useState(null);
 
   useEffect(() => {
     loadJobs();
@@ -45,8 +49,8 @@ const MyJobsScreen = ({ navigation }) => {
       const data = await getRecruiterJobs();
       setJobs(data || []);
     } catch (error) {
-      console.error('Erreur chargement offres:', error);
-      window.alert('Erreur lors du chargement de vos offres');
+      setErrorMessage('Erreur lors du chargement de vos offres');
+      setTimeout(() => setErrorMessage(''), 3000);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -59,18 +63,23 @@ const MyJobsScreen = ({ navigation }) => {
   };
 
   // Supprimer une offre
-  const handleDeleteJob = async (jobId, jobTitle) => {
-    const confirmed = window.confirm(`Êtes-vous sûr de vouloir supprimer l'offre "${jobTitle}" ?`);
-    if (!confirmed) return;
+  const handleDeleteJob = (jobId, jobTitle) => {
+    setJobToDelete({ jobId, jobTitle });
+    setShowDeleteModal(true);
+  };
 
+  const confirmDeleteJob = async () => {
+    setShowDeleteModal(false);
     try {
-      await deleteJob(jobId);
-      window.alert('Offre supprimée avec succès !');
-      loadJobs(); // Rafraîchir la liste
+      await deleteJob(jobToDelete.jobId);
+      setSuccessMessage('Offre supprimée avec succès !');
+      setTimeout(() => setSuccessMessage(''), 3000);
+      loadJobs();
     } catch (error) {
-      console.error('Erreur suppression:', error);
-      window.alert('Erreur lors de la suppression de l\'offre');
+      setErrorMessage('Erreur lors de la suppression de l\'offre');
+      setTimeout(() => setErrorMessage(''), 3000);
     }
+    setJobToDelete(null);
   };
 
   // Ouvrir la modal d'édition
@@ -85,7 +94,8 @@ const MyJobsScreen = ({ navigation }) => {
   // Sauvegarder les modifications
   const handleSaveEdit = async () => {
     if (!editTitle.trim()) {
-      window.alert('Le titre est obligatoire');
+      setErrorMessage('Le titre est obligatoire');
+      setTimeout(() => setErrorMessage(''), 3000);
       return;
     }
 
@@ -96,12 +106,14 @@ const MyJobsScreen = ({ navigation }) => {
         salaryRange: editSalary,
         skills: skillsArray.length > 0 ? skillsArray : undefined
       });
-      window.alert('Offre mise à jour avec succès !');
+      setSuccessMessage('Offre mise à jour avec succès !');
+      setTimeout(() => setSuccessMessage(''), 3000);
       setEditModalVisible(false);
       loadJobs(); // Rafraîchir la liste
     } catch (error) {
       console.error('Erreur mise à jour:', error);
-      window.alert('Erreur lors de la mise à jour de l\'offre');
+      setErrorMessage('Erreur lors de la mise à jour de l\'offre');
+      setTimeout(() => setErrorMessage(''), 3000);
     }
   };
 
@@ -118,8 +130,8 @@ const MyJobsScreen = ({ navigation }) => {
       setCandidates(prev => ({ ...prev, [jobId]: data || [] }));
       setExpandedJob(jobId);
     } catch (error) {
-      console.error('Erreur chargement candidats:', error);
-      window.alert('Erreur lors du chargement des candidats');
+      setErrorMessage('Erreur lors du chargement des candidats');
+      setTimeout(() => setErrorMessage(''), 3000);
     } finally {
       setLoadingCandidates(prev => ({ ...prev, [jobId]: false }));
     }
@@ -271,6 +283,31 @@ const MyJobsScreen = ({ navigation }) => {
         backgroundColor={COLORS.recruiter.primary}
       />
 
+      {/* Messages de succès/erreur */}
+      {successMessage && (
+        <View style={styles.successBanner}>
+          <View style={styles.messageContent}>
+            <Ionicons name="checkmark-circle" size={24} color={COLORS.status.success} />
+            <View style={styles.messageTextContainer}>
+              <Text style={styles.successTitle}>Succès !</Text>
+              <Text style={styles.messageSubtitle}>{successMessage}</Text>
+            </View>
+          </View>
+        </View>
+      )}
+      
+      {errorMessage && (
+        <View style={styles.errorBanner}>
+          <View style={styles.messageContent}>
+            <Ionicons name="alert-circle" size={24} color={COLORS.status.error} />
+            <View style={styles.messageTextContainer}>
+              <Text style={styles.errorTitle}>Erreur</Text>
+              <Text style={styles.messageSubtitle}>{errorMessage}</Text>
+            </View>
+          </View>
+        </View>
+      )}
+
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.recruiter.primary} />
@@ -347,6 +384,40 @@ const MyJobsScreen = ({ navigation }) => {
                 onPress={handleSaveEdit}
               >
                 <Text style={styles.saveBtnText}>Enregistrer</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modale Confirmation Suppression */}
+      <Modal
+        visible={showDeleteModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDeleteModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModal}>
+            <View style={[styles.modalIconContainer, { backgroundColor: COLORS.status.error + '20' }]}>
+              <Ionicons name="trash-outline" size={32} color={COLORS.status.error} />
+            </View>
+            <Text style={styles.modalTitle}>Supprimer l'offre</Text>
+            <Text style={styles.modalMessage}>
+              Êtes-vous sûr de vouloir supprimer l'offre "{jobToDelete?.jobTitle}" ?
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowDeleteModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton, { backgroundColor: COLORS.status.error }]}
+                onPress={confirmDeleteJob}
+              >
+                <Text style={styles.confirmButtonText}>Supprimer</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -618,6 +689,48 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     marginTop: SPACING.lg,
   },
+  successBanner: {
+    backgroundColor: COLORS.status.success + '15',
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.status.success,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginHorizontal: SPACING.md,
+    marginTop: SPACING.md,
+    ...SHADOWS.small,
+  },
+  errorBanner: {
+    backgroundColor: COLORS.status.error + '15',
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.status.error,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginHorizontal: SPACING.md,
+    marginTop: SPACING.md,
+    ...SHADOWS.small,
+  },
+  messageContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  messageTextContainer: {
+    flex: 1,
+    marginLeft: SPACING.sm,
+  },
+  successTitle: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.status.success,
+    marginBottom: 2,
+  },
+  errorTitle: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.status.error,
+    marginBottom: 2,
+  },
+  messageSubtitle: {
+    ...TYPOGRAPHY.small,
+    color: COLORS.neutral.text,
+  },
   modalBtn: {
     paddingHorizontal: SPACING.lg,
     paddingVertical: SPACING.md,
@@ -634,6 +747,60 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.recruiter.primary,
   },
   saveBtnText: {
+    ...TYPOGRAPHY.button,
+    color: COLORS.neutral.white,
+  },
+  confirmModal: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.xl,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    ...SHADOWS.large,
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  modalTitle: {
+    ...TYPOGRAPHY.subtitle,
+    color: COLORS.neutral.text,
+    marginBottom: SPACING.sm,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.neutral.textSecondary,
+    textAlign: 'center',
+    marginBottom: SPACING.lg,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: SPACING.md,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: COLORS.neutral.background,
+  },
+  cancelButtonText: {
+    ...TYPOGRAPHY.button,
+    color: COLORS.neutral.textSecondary,
+  },
+  confirmButton: {
+    ...SHADOWS.small,
+  },
+  confirmButtonText: {
     ...TYPOGRAPHY.button,
     color: COLORS.neutral.white,
   },

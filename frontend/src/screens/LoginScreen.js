@@ -1,5 +1,4 @@
 // src/screens/LoginScreen.js
-// Écran de connexion avec thème dynamique selon le rôle
 
 import React, { useState, useContext } from 'react';
 import { 
@@ -31,12 +30,17 @@ const LoginScreen = ({ route, navigation }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [accountNotFound, setAccountNotFound] = useState(false);
 
   const { login } = useContext(AuthContext);
 
   const handleLogin = async () => {
+    setErrorMessage('');
+    setAccountNotFound(false);
+    
     if (!email || !password) {
-      Alert.alert("Champs requis", "Veuillez remplir tous les champs.");
+      setErrorMessage("Veuillez remplir tous les champs.");
       return;
     }
 
@@ -47,7 +51,13 @@ const LoginScreen = ({ route, navigation }) => {
         await login(data.token, data.roles, data.user);
       }
     } catch (error) {
-      Alert.alert("Échec de connexion", "Email ou mot de passe incorrect.");
+      // Si le compte n'existe pas (404)
+      if (error.status === 404) {
+        setAccountNotFound(true);
+        setErrorMessage("Ce compte n'existe pas.");
+      } else {
+        setErrorMessage(error.message || "Email ou mot de passe incorrect.");
+      }
     } finally {
       setLoading(false);
     }
@@ -130,6 +140,27 @@ const LoginScreen = ({ route, navigation }) => {
               </TouchableOpacity>
             </View>
           </View>
+          
+          {/* Message d'erreur */}
+          {errorMessage ? (
+            <View style={styles.errorContainer}>
+              <View style={styles.errorHeader}>
+                <Ionicons name="alert-circle" size={20} color={COLORS.status.error} />
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
+              {accountNotFound && (
+                <TouchableOpacity 
+                  style={[styles.createAccountBtn, { borderColor: themeColors.primary }]}
+                  onPress={() => navigation.navigate('Register', { role })}
+                >
+                  <Ionicons name="person-add-outline" size={18} color={themeColors.primary} />
+                  <Text style={[styles.createAccountText, { color: themeColors.primary }]}>
+                    Créer un compte
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : null}
           
           {/* Bouton Connexion */}
           <TouchableOpacity
@@ -236,6 +267,40 @@ const styles = StyleSheet.create({
     color: COLORS.neutral.text,
     marginLeft: SPACING.sm,
     paddingVertical: SPACING.xs,
+  },
+  errorContainer: {
+    backgroundColor: COLORS.status.error + '10',
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.status.error,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.sm,
+    marginTop: SPACING.md,
+  },
+  errorHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  errorText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.status.error,
+    marginLeft: SPACING.sm,
+    flex: 1,
+  },
+  createAccountBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: SPACING.md,
+    paddingVertical: SPACING.sm,
+    paddingHorizontal: SPACING.md,
+    borderRadius: BORDER_RADIUS.sm,
+    borderWidth: 1.5,
+    backgroundColor: COLORS.neutral.white,
+  },
+  createAccountText: {
+    ...TYPOGRAPHY.bodyBold,
+    marginLeft: SPACING.xs,
   },
   submitButton: {
     flexDirection: 'row',

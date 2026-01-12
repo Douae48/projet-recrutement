@@ -11,10 +11,6 @@ router.delete('/remove-skill', DataController.removeSkill);
 router.get('/profile', DataController.getProfile);
 router.put('/profile', DataController.updateProfile);
 
-// Routes pour les candidatures
-router.post('/apply', DataController.applyToJob);
-router.get('/my-applications', DataController.getMyApplications);
-
 // Route pour poster un job (Recruteur)
 router.post('/post-job', DataController.postJob);
 

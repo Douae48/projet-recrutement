@@ -8,6 +8,7 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   ScrollView,
+  Modal,
   ActivityIndicator,
   RefreshControl,
   Dimensions,
@@ -25,6 +26,7 @@ const DashboardRecruiter = ({ navigation }) => {
   const [stats, setStats] = useState({ totalJobs: 0, myJobs: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -41,7 +43,7 @@ const DashboardRecruiter = ({ navigation }) => {
         myJobs: myJobs?.length || 0
       });
     } catch (error) {
-      console.error('Erreur stats:', error);
+
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -54,10 +56,12 @@ const DashboardRecruiter = ({ navigation }) => {
   };
 
   const handleLogout = () => {
-    const confirmed = window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?');
-    if (confirmed) {
-      logout();
-    }
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutModal(false);
+    logout();
   };
 
   return (
@@ -154,6 +158,38 @@ const DashboardRecruiter = ({ navigation }) => {
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* Modale Déconnexion */}
+      <Modal
+        visible={showLogoutModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLogoutModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModal}>
+            <View style={[styles.modalIconContainer, { backgroundColor: COLORS.status.warning + '20' }]}>
+              <Ionicons name="log-out-outline" size={32} color={COLORS.status.warning} />
+            </View>
+            <Text style={styles.modalTitle}>Déconnexion</Text>
+            <Text style={styles.modalMessage}>Êtes-vous sûr de vouloir vous déconnecter ?</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowLogoutModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton, { backgroundColor: COLORS.status.warning }]}
+                onPress={confirmLogout}
+              >
+                <Text style={styles.confirmButtonText}>Déconnecter</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -284,6 +320,67 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 100,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.lg,
+  },
+  confirmModal: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.xl,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    ...SHADOWS.large,
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  modalTitle: {
+    ...TYPOGRAPHY.subtitle,
+    color: COLORS.neutral.text,
+    marginBottom: SPACING.sm,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.neutral.textSecondary,
+    textAlign: 'center',
+    marginBottom: SPACING.lg,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: SPACING.md,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: COLORS.neutral.background,
+  },
+  cancelButtonText: {
+    ...TYPOGRAPHY.button,
+    color: COLORS.neutral.textSecondary,
+  },
+  confirmButton: {
+    ...SHADOWS.small,
+  },
+  confirmButtonText: {
+    ...TYPOGRAPHY.button,
+    color: COLORS.neutral.white,
   },
 });
 

@@ -8,7 +8,7 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   ScrollView,
-  Alert,
+  Modal,
   ActivityIndicator,
   TextInput,
   KeyboardAvoidingView,
@@ -49,6 +49,11 @@ const ProfileScreen = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [addingSkill, setAddingSkill] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showRemoveSkillModal, setShowRemoveSkillModal] = useState(false);
+  const [skillToRemove, setSkillToRemove] = useState(null);
 
   useEffect(() => {
     loadProfileData();
@@ -68,12 +73,11 @@ const ProfileScreen = () => {
         setSkills(mySkills);
       }
     } catch (error) {
-      console.error('Erreur chargement profil:', error);
       try {
         const mySkills = await getMySkills();
         setSkills(mySkills);
       } catch (e) {
-        console.error('Erreur skills:', e);
+        // Erreur silencieuse
       }
     } finally {
       setLoading(false);
@@ -81,12 +85,15 @@ const ProfileScreen = () => {
   }, []);
 
   const handleSaveProfile = async () => {
+    setErrorMessage('');
+    setSuccessMessage('');
+    
     if (!name.trim()) {
-      window.alert('Le nom ne peut pas être vide.');
+      setErrorMessage('Le nom ne peut pas être vide.');
       return;
     }
     if (!email.trim() || !email.includes('@')) {
-      window.alert('Veuillez saisir un email valide.');
+      setErrorMessage('Veuillez saisir un email valide.');
       return;
     }
 
@@ -96,9 +103,10 @@ const ProfileScreen = () => {
       setOriginalName(name.trim());
       setOriginalEmail(email.trim());
       setEditMode(false);
-      window.alert('Profil mis à jour avec succès !');
+      setSuccessMessage('Profil mis à jour avec succès !');
+      setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
-      window.alert('Impossible de mettre à jour le profil.');
+      setErrorMessage('Impossible de mettre à jour le profil.');
     } finally {
       setSavingProfile(false);
     }
@@ -114,14 +122,16 @@ const ProfileScreen = () => {
 
   const handleAddSkill = async () => {
     const skillLabel = newSkill.trim();
+    setErrorMessage('');
+    setSuccessMessage('');
     
     if (!skillLabel) {
-      window.alert('Veuillez saisir une compétence.');
+      setErrorMessage('Veuillez saisir une compétence.');
       return;
     }
     
     if (skills.includes(skillLabel)) {
-      window.alert('Cette compétence est déjà dans votre profil.');
+      setErrorMessage('Cette compétence est déjà dans votre profil.');
       return;
     }
 
@@ -130,33 +140,41 @@ const ProfileScreen = () => {
       await addSkillToProfile(skillLabel);
       setSkills([...skills, skillLabel]);
       setNewSkill('');
-      window.alert(`Compétence "${skillLabel}" ajoutée !`);
+      setSuccessMessage(`Compétence "${skillLabel}" ajoutée !`);
+      setTimeout(() => setSuccessMessage(''), 3000);
     } catch (error) {
-      window.alert('Impossible d\'ajouter la compétence.');
+      setErrorMessage('Impossible d\'ajouter la compétence.');
     } finally {
       setAddingSkill(false);
     }
   };
 
-  const handleRemoveSkill = async (skillLabel) => {
-    // Utiliser confirm pour le web (Alert.alert ne fonctionne pas bien sur web)
-    const confirmed = window.confirm(`Retirer "${skillLabel}" de votre profil ?`);
-    
-    if (confirmed) {
-      try {
-        await removeSkillFromProfile(skillLabel);
-        setSkills(skills.filter(s => s !== skillLabel));
-      } catch (error) {
-        window.alert('Erreur: Impossible de supprimer la compétence.');
-      }
+  const handleRemoveSkill = (skillLabel) => {
+    setSkillToRemove(skillLabel);
+    setShowRemoveSkillModal(true);
+  };
+
+  const confirmRemoveSkill = async () => {
+    setShowRemoveSkillModal(false);
+    try {
+      await removeSkillFromProfile(skillToRemove);
+      setSkills(skills.filter(s => s !== skillToRemove));
+      setSuccessMessage(`Compétence "${skillToRemove}" retirée !`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      setErrorMessage('Impossible de supprimer la compétence.');
+      setTimeout(() => setErrorMessage(''), 3000);
     }
+    setSkillToRemove(null);
   };
 
   const handleLogout = () => {
-    const confirmed = window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?');
-    if (confirmed) {
-      logout();
-    }
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutModal(false);
+    logout();
   };
 
   const suggestedSkills = ['JavaScript', 'React', 'Node.js', 'Python', 'SQL', 'Figma', 'Agile', 'Communication'];
@@ -190,6 +208,31 @@ const ProfileScreen = () => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Messages de succès/erreur */}
+        {successMessage && (
+          <View style={styles.successBanner}>
+            <View style={styles.successContent}>
+              <Ionicons name="checkmark-circle" size={24} color={COLORS.status.success} />
+              <View style={styles.successTextContainer}>
+                <Text style={styles.successTitle}>Succès !</Text>
+                <Text style={styles.successSubtitle}>{successMessage}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+        
+        {errorMessage && (
+          <View style={styles.errorBanner}>
+            <View style={styles.errorContent}>
+              <Ionicons name="alert-circle" size={24} color={COLORS.status.error} />
+              <View style={styles.errorTextContainer}>
+                <Text style={styles.errorTitle}>Erreur</Text>
+                <Text style={styles.errorSubtitle}>{errorMessage}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+        
         {/* Section Avatar */}
         <View style={styles.avatarSection}>
           <View style={[styles.avatar, { backgroundColor: themeColors.primary }]}>
@@ -382,6 +425,72 @@ const ProfileScreen = () => {
 
         <View style={styles.bottomSpacing} />
       </ScrollView>
+
+      {/* Modale Déconnexion */}
+      <Modal
+        visible={showLogoutModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLogoutModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModal}>
+            <View style={[styles.modalIconContainer, { backgroundColor: COLORS.status.warning + '20' }]}>
+              <Ionicons name="log-out-outline" size={32} color={COLORS.status.warning} />
+            </View>
+            <Text style={styles.modalTitle}>Déconnexion</Text>
+            <Text style={styles.modalMessage}>Êtes-vous sûr de vouloir vous déconnecter ?</Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowLogoutModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton, { backgroundColor: COLORS.status.warning }]}
+                onPress={confirmLogout}
+              >
+                <Text style={styles.confirmButtonText}>Déconnecter</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modale Retirer Compétence */}
+      <Modal
+        visible={showRemoveSkillModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowRemoveSkillModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.confirmModal}>
+            <View style={[styles.modalIconContainer, { backgroundColor: COLORS.status.error + '20' }]}>
+              <Ionicons name="trash-outline" size={32} color={COLORS.status.error} />
+            </View>
+            <Text style={styles.modalTitle}>Retirer la compétence</Text>
+            <Text style={styles.modalMessage}>
+              Voulez-vous retirer "{skillToRemove}" de votre profil ?
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowRemoveSkillModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.confirmButton, { backgroundColor: COLORS.status.error }]}
+                onPress={confirmRemoveSkill}
+              >
+                <Text style={styles.confirmButtonText}>Retirer</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 };
@@ -590,6 +699,58 @@ const styles = StyleSheet.create({
     ...TYPOGRAPHY.small,
     color: COLORS.neutral.textSecondary,
   },
+  successBanner: {
+    backgroundColor: COLORS.status.success + '15',
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.status.success,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+    ...SHADOWS.small,
+  },
+  successContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  successTextContainer: {
+    flex: 1,
+    marginLeft: SPACING.sm,
+  },
+  successTitle: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.status.success,
+    marginBottom: 2,
+  },
+  successSubtitle: {
+    ...TYPOGRAPHY.small,
+    color: COLORS.neutral.text,
+  },
+  errorBanner: {
+    backgroundColor: COLORS.status.error + '15',
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.status.error,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+    ...SHADOWS.small,
+  },
+  errorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  errorTextContainer: {
+    flex: 1,
+    marginLeft: SPACING.sm,
+  },
+  errorTitle: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.status.error,
+    marginBottom: 2,
+  },
+  errorSubtitle: {
+    ...TYPOGRAPHY.small,
+    color: COLORS.neutral.text,
+  },
   tipCard: {
     flexDirection: 'row',
     borderRadius: BORDER_RADIUS.lg,
@@ -611,6 +772,67 @@ const styles = StyleSheet.create({
   },
   bottomSpacing: {
     height: 100,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING.lg,
+  },
+  confirmModal: {
+    backgroundColor: COLORS.neutral.white,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.xl,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    ...SHADOWS.large,
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SPACING.md,
+  },
+  modalTitle: {
+    ...TYPOGRAPHY.subtitle,
+    color: COLORS.neutral.text,
+    marginBottom: SPACING.sm,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.neutral.textSecondary,
+    textAlign: 'center',
+    marginBottom: SPACING.lg,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: SPACING.md,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: SPACING.md,
+    borderRadius: BORDER_RADIUS.lg,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: COLORS.neutral.background,
+  },
+  cancelButtonText: {
+    ...TYPOGRAPHY.button,
+    color: COLORS.neutral.textSecondary,
+  },
+  confirmButton: {
+    ...SHADOWS.small,
+  },
+  confirmButtonText: {
+    ...TYPOGRAPHY.button,
+    color: COLORS.neutral.white,
   },
 });
 

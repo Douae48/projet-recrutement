@@ -101,37 +101,37 @@ export const BORDER_RADIUS = {
 
 export const TYPOGRAPHY = {
   hero: {
-    fontSize: 36,
+    fontSize: 28,
     fontWeight: '800',
     letterSpacing: -0.5,
   },
   title: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '700',
     letterSpacing: -0.3,
   },
   subtitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
   },
   body: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '400',
   },
   bodyBold: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '600',
   },
   button: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
   },
   caption: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '400',
   },
   small: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
   },
 };

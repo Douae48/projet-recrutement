@@ -4,18 +4,14 @@ const RecommendationService = require('../services/RecommendationService');
 // Fonction pour recommander des jobs à un candidat
 exports.getRecommendedJobs = async (req, res) => {
     try {
-        // Support de 'me' pour récupérer l'ID depuis le token
         let candidateId = req.params.id;
         if (candidateId === 'me' && req.userData) {
             candidateId = req.userData.userId;
         }
-        
-        // On demande au "cerveau" (le service) de faire le calcul
         const jobs = await RecommendationService.getRecommendedJobs(candidateId);
         
-        res.status(200).json(jobs); // On envoie le résultat en JSON
+        res.status(200).json(jobs);
     } catch (error) {
-        console.error("Erreur Controller :", error);
         res.status(500).json({ message: "Erreur lors de la récupération des jobs" });
     }
 };
@@ -37,7 +33,6 @@ exports.getRecruiterJobs = async (req, res) => {
         const jobs = await RecommendationService.getRecruiterJobs(recruiterId);
         res.status(200).json(jobs);
     } catch (error) {
-        console.error("Erreur getRecruiterJobs:", error);
         res.status(500).json({ message: "Erreur lors de la récupération des offres" });
     }
 };
@@ -49,7 +44,6 @@ exports.getRecommendedCandidates = async (req, res) => {
         const candidates = await RecommendationService.getRecommendedCandidates(jobId);
         res.status(200).json(candidates);
     } catch (error) {
-        console.error("Erreur getRecommendedCandidates:", error);
         res.status(500).json({ message: "Erreur lors de la récupération des candidats" });
     }
 };
@@ -61,7 +55,6 @@ exports.getAllRecommendedCandidates = async (req, res) => {
         const candidates = await RecommendationService.getAllRecommendedCandidatesForRecruiter(recruiterId);
         res.status(200).json(candidates);
     } catch (error) {
-        console.error("Erreur getAllRecommendedCandidates:", error);
         res.status(500).json({ message: "Erreur lors de la récupération des candidats" });
     }
 };

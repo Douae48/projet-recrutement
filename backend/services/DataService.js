@@ -124,63 +124,7 @@ const DataService = {
         }
     },
 
-    // 7. Postuler à une offre d'emploi
-    applyToJob: async (candidateId, jobId) => {
-        const session = driver.session();
-        try {
-            // Vérifier si déjà postulé
-            const checkResult = await session.run(`
-                MATCH (c:User:Candidate {id: $candidateId})-[r:APPLIED_TO]->(j:JobOffer {id: $jobId})
-                RETURN r
-            `, { candidateId, jobId });
-            
-            if (checkResult.records.length > 0) {
-                return { message: 'Vous avez déjà postulé à cette offre.', alreadyApplied: true };
-            }
-            
-            // Créer la candidature
-            await session.run(`
-                MATCH (c:User:Candidate {id: $candidateId})
-                MATCH (j:JobOffer {id: $jobId})
-                CREATE (c)-[:APPLIED_TO {
-                    appliedAt: datetime(),
-                    status: 'pending'
-                }]->(j)
-            `, { candidateId, jobId });
-            
-            return { message: 'Candidature envoyée avec succès !', success: true };
-        } finally {
-            await session.close();
-        }
-    },
-
-    // 8. Récupérer les candidatures d'un candidat
-    getCandidateApplications: async (candidateId) => {
-        const session = driver.session();
-        try {
-            const result = await session.run(`
-                MATCH (c:User:Candidate {id: $candidateId})-[r:APPLIED_TO]->(j:JobOffer)
-                OPTIONAL MATCH (rec:User:Recruiter)-[:POSTED]->(j)
-                RETURN j.id AS jobId, j.title AS title, j.salaryRange AS salaryRange,
-                       r.appliedAt AS appliedAt, r.status AS status,
-                       rec.name AS recruiterName
-                ORDER BY r.appliedAt DESC
-            `, { candidateId });
-            
-            return result.records.map(record => ({
-                jobId: record.get('jobId'),
-                title: record.get('title'),
-                salaryRange: record.get('salaryRange'),
-                appliedAt: record.get('appliedAt'),
-                status: record.get('status'),
-                recruiterName: record.get('recruiterName')
-            }));
-        } finally {
-            await session.close();
-        }
-    },
-
-    // 9. Supprimer une offre d'emploi
+    // 7. Supprimer une offre d'emploi
     deleteJob: async (recruiterId, jobId) => {
         const session = driver.session();
         try {
@@ -206,7 +150,7 @@ const DataService = {
         }
     },
 
-    // 10. Mettre à jour une offre d'emploi
+    // 8. Mettre à jour une offre d'emploi
     updateJob: async (recruiterId, jobId, updates) => {
         const session = driver.session();
         try {

@@ -1,5 +1,4 @@
 // src/screens/RegisterScreen.js
-// Écran d'inscription avec thème dynamique selon le rôle
 
 import React, { useState } from 'react';
 import { 
@@ -32,31 +31,39 @@ const RegisterScreen = ({ route, navigation }) => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   const handleRegister = async () => {
+    setErrorMessage('');
+    setSuccessMessage('');
+    
     if (!name || !email || !password) {
-      window.alert("Tous les champs sont obligatoires.");
+      setErrorMessage("Tous les champs sont obligatoires.");
       return;
     }
     
     if (password !== confirmPassword) {
-      window.alert("Les mots de passe ne correspondent pas.");
+      setErrorMessage("Les mots de passe ne correspondent pas.");
       return;
     }
     
     if (password.length < 6) {
-      window.alert("Le mot de passe doit contenir au moins 6 caractères.");
+      setErrorMessage("Le mot de passe doit contenir au moins 6 caractères.");
       return;
     }
 
     setLoading(true);
     try {
       await registerUser({ name, email, password, role });
-      window.alert("Compte créé avec succès ! 🎉 Vous allez être redirigé vers la page de connexion.");
-      // Redirection vers la page de connexion
-      navigation.navigate('Login', { role });
+      setSuccessMessage("Compte créé avec succès ! 🎉");
+      // Redirection vers la page de connexion après 1.5s
+      setTimeout(() => {
+        navigation.navigate('Login', { role });
+      }, 1500);
     } catch (error) {
-      window.alert(error.message || "Impossible de créer le compte.");
+      setErrorMessage(error.message || "Impossible de créer le compte.");
     } finally {
       setLoading(false);
     }
@@ -167,10 +174,32 @@ const RegisterScreen = ({ route, navigation }) => {
                 placeholderTextColor={COLORS.neutral.placeholder}
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
-                secureTextEntry={!showPassword}
+                secureTextEntry={!showConfirmPassword}
               />
+              <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                <Ionicons 
+                  name={showConfirmPassword ? "eye-off-outline" : "eye-outline"} 
+                  size={20} 
+                  color={COLORS.neutral.textSecondary} 
+                />
+              </TouchableOpacity>
             </View>
           </View>
+          
+          {/* Messages d'erreur et de succès */}
+          {errorMessage ? (
+            <View style={styles.errorContainer}>
+              <Ionicons name="alert-circle" size={20} color={COLORS.status.error} />
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            </View>
+          ) : null}
+          
+          {successMessage ? (
+            <View style={styles.successContainer}>
+              <Ionicons name="checkmark-circle" size={20} color={COLORS.status.success} />
+              <Text style={styles.successText}>{successMessage}</Text>
+            </View>
+          ) : null}
           
           {/* Bouton Inscription */}
           <TouchableOpacity
@@ -277,6 +306,40 @@ const styles = StyleSheet.create({
     color: COLORS.neutral.text,
     marginLeft: SPACING.sm,
     paddingVertical: SPACING.xs,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.status.error + '10',
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.status.error,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.sm,
+    marginTop: SPACING.md,
+  },
+  errorText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.status.error,
+    marginLeft: SPACING.sm,
+    flex: 1,
+  },
+  successContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.status.success + '10',
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.status.success,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    borderRadius: BORDER_RADIUS.sm,
+    marginTop: SPACING.md,
+  },
+  successText: {
+    ...TYPOGRAPHY.body,
+    color: COLORS.status.success,
+    marginLeft: SPACING.sm,
+    flex: 1,
   },
   submitButton: {
     flexDirection: 'row',

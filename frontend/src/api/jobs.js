@@ -1,13 +1,7 @@
 // src/api/jobs.js
 // API pour les offres d'emploi et recommandations
-
 import apiClient from './client';
 
-/**
- * Récupérer les recommandations d'emploi pour le candidat connecté
- * Endpoint: GET /api/jobs/recommendations/:candidateId
- * Note: L'ID du candidat est extrait du token côté backend
- */
 export const getRecommendedJobs = async () => {
   try {
     // Le backend extraira l'ID du candidat depuis le token JWT
@@ -19,10 +13,6 @@ export const getRecommendedJobs = async () => {
   }
 };
 
-/**
- * Récupérer les statistiques (nombre total d'offres)
- * Endpoint: GET /api/jobs/stats
- */
 export const getStats = async () => {
   try {
     const response = await apiClient.get('/jobs/stats');
@@ -35,7 +25,6 @@ export const getStats = async () => {
 
 /**
  * Publier une nouvelle offre d'emploi (Recruteur)
- * Endpoint: POST /api/data/post-job
  * @param {Object} jobData - { title, salaryRange, skills }
  */
 export const postJob = async (jobData) => {
@@ -50,7 +39,6 @@ export const postJob = async (jobData) => {
 
 /**
  * Récupérer les détails d'une offre
- * Endpoint: GET /api/jobs/:jobId
  */
 export const getJobDetails = async (jobId) => {
   try {
@@ -66,7 +54,6 @@ export const getJobDetails = async (jobId) => {
 
 /**
  * Récupérer les offres postées par le recruteur connecté
- * Endpoint: GET /api/jobs/my-jobs
  */
 export const getRecruiterJobs = async () => {
   try {
@@ -80,7 +67,6 @@ export const getRecruiterJobs = async () => {
 
 /**
  * Récupérer les candidats recommandés pour une offre spécifique
- * Endpoint: GET /api/jobs/:jobId/candidates
  * @param {string} jobId - L'ID de l'offre
  */
 export const getRecommendedCandidates = async (jobId) => {
@@ -95,7 +81,6 @@ export const getRecommendedCandidates = async (jobId) => {
 
 /**
  * Récupérer tous les candidats recommandés pour toutes les offres du recruteur
- * Endpoint: GET /api/jobs/all-candidates
  */
 export const getAllRecommendedCandidates = async () => {
   try {
@@ -109,7 +94,6 @@ export const getAllRecommendedCandidates = async () => {
 
 /**
  * Supprimer une offre d'emploi (Recruteur)
- * Endpoint: DELETE /api/data/jobs/:jobId
  * @param {string} jobId - L'ID de l'offre à supprimer
  */
 export const deleteJob = async (jobId) => {
@@ -124,7 +108,6 @@ export const deleteJob = async (jobId) => {
 
 /**
  * Mettre à jour une offre d'emploi (Recruteur)
- * Endpoint: PUT /api/data/jobs/:jobId
  * @param {string} jobId - L'ID de l'offre
  * @param {Object} updates - { title, salaryRange, skills }
  */
@@ -134,21 +117,6 @@ export const updateJob = async (jobId, updates) => {
     return response.data;
   } catch (error) {
     console.error('Erreur updateJob:', error.response?.data || error.message);
-    throw error;
-  }
-};
-
-/**
- * Postuler à une offre d'emploi (Candidat)
- * Endpoint: POST /api/data/apply
- * @param {string} jobId - L'ID de l'offre
- */
-export const applyToJob = async (jobId) => {
-  try {
-    const response = await apiClient.post('/data/apply', { jobId });
-    return response.data;
-  } catch (error) {
-    console.error('Erreur applyToJob:', error.response?.data || error.message);
     throw error;
   }
 };

@@ -8,15 +8,23 @@ exports.register = async (req, res) => {
     const session = driver.session();
 
     try {
-        // 1. Validation du rôle pour éviter d'injecter n'importe quel label
+        // 1. Validation du rôle 
         if (!['Candidate', 'Recruiter'].includes(role)) {
             return res.status(400).json({ message: "Rôle invalide." });
         }
 
-        // 2. Cryptage du mot de passe
+        // 2. Vérifier si l'email existe déjà
+        const checkEmailQuery = 'MATCH (u:User {email: $email}) RETURN u';
+        const emailCheck = await session.run(checkEmailQuery, { email });
+        
+        if (emailCheck.records.length > 0) {
+            return res.status(409).json({ message: "Cet email est déjà utilisé." });
+        }
+
+        // 3. Cryptage du mot de passe
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // 3. Création avec Multi-Labels (:User ET :Candidate/Recruiter)
+        // 4. Création avec Multi-Labels (:User ET :Candidate/Recruiter)
         const query = `
             CREATE (u:User:${role} {
                 id: randomUUID(),
@@ -42,7 +50,6 @@ exports.login = async (req, res) => {
     const session = driver.session();
 
     try {
-        // On récupère l'utilisateur ET ses étiquettes (labels)
         const query = 'MATCH (u:User {email: $email}) RETURN u, labels(u) AS roles';
         const result = await session.run(query, { email });
 
@@ -57,7 +64,7 @@ exports.login = async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(401).json({ message: "Mot de passe incorrect." });
 
-        // On extrait les rôles (on enlève 'User' pour ne garder que Candidate/Recruiter)
+        // On extrait les rôles 
         const roles = labels.filter(l => l !== 'User');
 
         // Création du Token avec les rôles à l'intérieur

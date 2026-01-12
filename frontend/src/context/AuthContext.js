@@ -18,19 +18,12 @@ export const AuthProvider = ({ children }) => {
   const [userData, setUserData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Restaurer la session au démarrage
   useEffect(() => {
     restoreSession();
   }, []);
 
   const restoreSession = async () => {
     try {
-      // MODE DÉVELOPPEMENT : Forcer la déconnexion au démarrage
-      // Commentez ces 3 lignes pour restaurer le comportement normal
-      await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
-      setIsLoading(false);
-      return;
-      
       const [token, rolesJson, userJson] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.TOKEN),
         AsyncStorage.getItem(STORAGE_KEYS.ROLES),
@@ -43,7 +36,6 @@ export const AuthProvider = ({ children }) => {
         setUserData(userJson ? JSON.parse(userJson) : null);
       }
     } catch (error) {
-      console.error('Erreur restauration session:', error);
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +54,6 @@ export const AuthProvider = ({ children }) => {
         user && AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(user)),
       ]);
     } catch (error) {
-      console.error('Erreur login:', error);
       throw error;
     }
   }, []);
@@ -75,11 +66,9 @@ export const AuthProvider = ({ children }) => {
       setUserData(null);
       await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
     } catch (error) {
-      console.error('Erreur logout:', error);
     }
   }, []);
 
-  // Helpers pour vérifier les rôles
   const isCandidate = userRoles.includes('Candidate');
   const isRecruiter = userRoles.includes('Recruiter');
   const primaryRole = isRecruiter ? 'Recruiter' : 'Candidate';

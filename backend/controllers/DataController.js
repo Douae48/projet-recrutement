@@ -3,7 +3,6 @@ const DataService = require('../services/DataService');
 // --- 1. Ajouter une compétence (Candidat) ---
 exports.addSkill = async (req, res) => {
     try {
-        // CHANGEMENT : on récupère "label" au lieu de "skillName"
         const { label } = req.body; 
         const candidateId = req.userData.userId;
 
@@ -11,7 +10,6 @@ exports.addSkill = async (req, res) => {
             return res.status(403).json({ message: "Seuls les candidats peuvent faire cela." });
         }
 
-        // On envoie "label" au service de l'étudiante A
         const result = await DataService.addSkillToCandidate(candidateId, label);
         res.status(200).json(result);
     } catch (error) {
@@ -57,20 +55,18 @@ exports.postJob = async (req, res) => {
     try {
         const recruiterId = req.userData.userId;
         
-        // AJOUT : on récupère "salaryRange" et "postedAt" (si envoyé par le front)
         const { title, company, skills, salaryRange } = req.body;
 
         if (!req.userData.roles.includes('Recruiter')) {
             return res.status(403).json({ message: "Action réservée aux recruteurs." });
         }
 
-        // On prépare l'objet avec les nouveaux champs pour le service
         const jobData = { 
             title, 
             company, 
             skills, 
             salaryRange, 
-            postedAt: new Date().toISOString() // On génère la date automatiquement si besoin
+            postedAt: new Date().toISOString() 
         };
 
         const result = await DataService.createJobWithSkills(recruiterId, jobData);
@@ -103,40 +99,7 @@ exports.updateProfile = async (req, res) => {
     }
 };
 
-// --- 6. Postuler à une offre d'emploi ---
-exports.applyToJob = async (req, res) => {
-    try {
-        const candidateId = req.userData.userId;
-        const { jobId } = req.body;
-
-        if (!req.userData.roles.includes('Candidate')) {
-            return res.status(403).json({ message: "Seuls les candidats peuvent postuler." });
-        }
-
-        const result = await DataService.applyToJob(candidateId, jobId);
-        res.status(200).json(result);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-// --- 7. Récupérer les candidatures du candidat ---
-exports.getMyApplications = async (req, res) => {
-    try {
-        const candidateId = req.userData.userId;
-
-        if (!req.userData.roles.includes('Candidate')) {
-            return res.status(403).json({ message: "Seuls les candidats peuvent voir leurs candidatures." });
-        }
-
-        const applications = await DataService.getCandidateApplications(candidateId);
-        res.status(200).json({ applications });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-};
-
-// --- 8. Supprimer une offre d'emploi (Recruteur) ---
+// --- 6. Supprimer une offre d'emploi (Recruteur) ---
 exports.deleteJob = async (req, res) => {
     try {
         const recruiterId = req.userData.userId;

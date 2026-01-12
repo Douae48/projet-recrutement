@@ -4,20 +4,20 @@ export const loginUser = async (email, password) => {
     try {
         // On envoie les infos au backend
         const response = await apiClient.post('/auth/login', { email, password });
-        return response.data; // Contient { token, roles, user }
+        return response.data; 
     } catch (error) {
-        console.error("Erreur API Login:", error.response?.data || error.message);
-        throw error;
+        const err = new Error(error.response?.data?.message || "Erreur de connexion");
+        err.status = error.response?.status;
+        throw err;
     }
 };
 
 export const registerUser = async (userData) => {
     try {
-        // userData doit contenir { name, email, password, role }
         const response = await apiClient.post('/auth/register', userData);
         return response.data;
     } catch (error) {
-        console.error("Erreur API Register:", error.response?.data || error.message);
-        throw error;
+        const errorMessage = error.response?.data?.message || error.message || "Erreur lors de l'inscription";
+        throw new Error(errorMessage);
     }
 };

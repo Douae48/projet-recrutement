@@ -10,8 +10,8 @@ const SkillBadge = ({
   label, 
   onRemove, 
   removable = false,
-  variant = 'default', // 'default', 'primary', 'success'
-  size = 'md', // 'sm', 'md', 'lg'
+  variant = 'default',
+  size = 'md', 
 }) => {
   const getVariantStyles = () => {
     switch (variant) {

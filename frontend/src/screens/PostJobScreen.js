@@ -9,7 +9,6 @@ import {
   TextInput, 
   TouchableOpacity, 
   ScrollView,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
@@ -33,6 +32,8 @@ const PostJobScreen = () => {
   const [skills, setSkills] = useState([]);
   const [newSkill, setNewSkill] = useState('');
   const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Ajouter une compétence requise
   const handleAddSkill = () => {
@@ -40,7 +41,8 @@ const PostJobScreen = () => {
     if (!skillLabel) return;
     
     if (skills.includes(skillLabel)) {
-      Alert.alert('Doublon', 'Cette compétence est déjà ajoutée.');
+      setErrorMessage('Cette compétence est déjà ajoutée.');
+      setTimeout(() => setErrorMessage(''), 3000);
       return;
     }
     
@@ -55,18 +57,21 @@ const PostJobScreen = () => {
 
   // Publier l'offre - Appel à POST /api/data/post-job
   const handlePostJob = async () => {
+    setErrorMessage('');
+    setSuccessMessage(false);
+    
     if (!title.trim()) {
-      Alert.alert('Erreur', 'Veuillez saisir un titre pour l\'offre.');
+      setErrorMessage('Veuillez saisir un titre pour l\'offre.');
       return;
     }
     
     if (!salaryRange.trim()) {
-      Alert.alert('Erreur', 'Veuillez indiquer une fourchette salariale.');
+      setErrorMessage('Veuillez indiquer une fourchette salariale.');
       return;
     }
     
     if (skills.length === 0) {
-      Alert.alert('Erreur', 'Ajoutez au moins une compétence requise.');
+      setErrorMessage('Ajoutez au moins une compétence requise.');
       return;
     }
 
@@ -79,13 +84,14 @@ const PostJobScreen = () => {
         skills: skills,
       });
       
-      Alert.alert(
-        'Offre publiée ! 🎉',
-        'Votre offre est maintenant visible par les candidats.',
-        [{ text: 'OK', onPress: resetForm }]
-      );
+      setSuccessMessage(true);
+      setTimeout(() => {
+        resetForm();
+        setSuccessMessage(false);
+      }, 2500);
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible de publier l\'offre.');
+      setErrorMessage('Impossible de publier l\'offre.');
+      setTimeout(() => setErrorMessage(''), 3000);
     } finally {
       setLoading(false);
     }
@@ -119,6 +125,32 @@ const PostJobScreen = () => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Message de succès */}
+        {successMessage && (
+          <View style={styles.successBanner}>
+            <View style={styles.successContent}>
+              <Ionicons name="checkmark-circle" size={24} color={COLORS.status.success} />
+              <View style={styles.successTextContainer}>
+                <Text style={styles.successTitle}>Offre publiée !</Text>
+                <Text style={styles.successSubtitle}>Visible par les candidats maintenant</Text>
+              </View>
+            </View>
+          </View>
+        )}
+        
+        {/* Message d'erreur */}
+        {errorMessage && (
+          <View style={styles.errorBanner}>
+            <View style={styles.errorContent}>
+              <Ionicons name="alert-circle" size={24} color={COLORS.status.error} />
+              <View style={styles.errorTextContainer}>
+                <Text style={styles.errorTitle}>Erreur</Text>
+                <Text style={styles.errorSubtitle}>{errorMessage}</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Titre de l'offre */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Titre du poste *</Text>
@@ -414,6 +446,58 @@ const styles = StyleSheet.create({
   previewSkillText: {
     ...TYPOGRAPHY.small,
     color: COLORS.neutral.textSecondary,
+  },
+  successBanner: {
+    backgroundColor: COLORS.status.success + '15',
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.status.success,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+    ...SHADOWS.medium,
+  },
+  successContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  successTextContainer: {
+    marginLeft: SPACING.md,
+    flex: 1,
+  },
+  successTitle: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.status.success,
+  },
+  successSubtitle: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.neutral.textSecondary,
+    marginTop: 2,
+  },
+  errorBanner: {
+    backgroundColor: COLORS.status.error + '15',
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.status.error,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.lg,
+    ...SHADOWS.medium,
+  },
+  errorContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  errorTextContainer: {
+    marginLeft: SPACING.md,
+    flex: 1,
+  },
+  errorTitle: {
+    ...TYPOGRAPHY.bodyBold,
+    color: COLORS.status.error,
+  },
+  errorSubtitle: {
+    ...TYPOGRAPHY.caption,
+    color: COLORS.neutral.textSecondary,
+    marginTop: 2,
   },
   submitButton: {
     flexDirection: 'row',

@@ -48,7 +48,6 @@ const RecommendationService = {
                 };
             });
         } catch (error) {
-            console.error("❌ Erreur RecommendationService:", error.message);
             throw error;
         } finally {
             await session.close();

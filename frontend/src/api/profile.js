@@ -75,32 +75,3 @@ export const updateProfile = async (updates) => {
     throw error;
   }
 };
-
-/**
- * Postuler à une offre d'emploi
- * Endpoint: POST /api/data/apply
- * @param {string} jobId - L'ID de l'offre
- */
-export const applyToJob = async (jobId) => {
-  try {
-    const response = await apiClient.post('/data/apply', { jobId });
-    return response.data;
-  } catch (error) {
-    console.error('Erreur applyToJob:', error.response?.data || error.message);
-    throw error;
-  }
-};
-
-/**
- * Récupérer mes candidatures
- * Endpoint: GET /api/data/my-applications
- */
-export const getMyApplications = async () => {
-  try {
-    const response = await apiClient.get('/data/my-applications');
-    return response.data.applications || [];
-  } catch (error) {
-    console.error('Erreur getMyApplications:', error.response?.data || error.message);
-    return [];
-  }
-};
